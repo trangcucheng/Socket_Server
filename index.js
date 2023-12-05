@@ -4,7 +4,8 @@ const fs = require('fs');
 var app = express();
 const path = require('path');
 
-const filePath = './data/info.json';
+//const filePath = './data/info.json';
+const folderPath = './car'
 
 const server = http.createServer(app);
 const socketIo = require("socket.io")(server, {
@@ -36,28 +37,48 @@ app.get('/', (req, res) => {
 
     res.render('index', { data });
 });
+
 app.get('/datatable', (req, res) => {
   const data = readJSONFile('./data/fakeData.json');
   res.render('datatable', { data });
 
 });
 
-
 function readInfo(callback) {
-  fs.readFile(filePath, 'utf8', (err, data) => {
-      if (err) {
-          console.error('Error reading the file:', err);
-          callback(err, null);
-          return;
-      }
-      try {
-          const jsonData = JSON.parse(data);
-          callback(null, jsonData);
-      } catch (parseError) {
-          console.error('Error parsing JSON:', parseError);
-          callback(parseError, null);
-      }
+  fs.readdir(folderPath, (err, files) => {
+    if (err) {
+      console.error('Error reading folder:', err);
+      return;
+    }
+    const jsonFiles = files.filter(file => path.extname(file).toLowerCase() === '.json');
+    if (jsonFiles?.length > 0) {
+      const filePath_ = folderPath + '/' + jsonFiles[0]
+      console.log("filePath_", filePath_)
+      fs.readFile(filePath_, 'utf8', (err, data) => {
+        if (err) {
+            console.error('Error reading the file:', err);
+            callback(err, null);
+            return;
+        }
+        try {
+            const jsonData = JSON.parse(data);
+            callback(null, jsonData);
+            fs.unlink(filePath_, (err) => {
+              if (err) {
+                console.error('Error deleting file:', err);
+                return;
+              }
+              console.log('File deleted successfully.');
+            });
+        } catch (parseError) {
+            console.error('Error parsing JSON:', parseError);
+            callback(parseError, null);
+        }
+    });
+    }
   });
+
+  
 }
 
 socketIo.on("connect", (socket) => { 
